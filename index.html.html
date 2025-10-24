@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Housie Game Generator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🎲 Housie Number Generator 🎲</h1>
+
+    <div class="controls">
+      <button id="startBtn">Start Game</button>
+      <button id="nextNumberBtn" disabled>Next Number</button>
+      <button id="resetBtn" disabled>Reset</button>
+    </div>
+
+    <div class="number-display">
+      <h2 id="currentNumber">--</h2>
+    </div>
+
+    <div class="table-container">
+      <table id="numbersTable"></table>
+    </div>
+
+    <div class="results">
+      <h3>🏆 Achievements</h3>
+      <div class="result-item">
+        <label>Top Line:</label>
+        <input type="text" id="topLineName" placeholder="Enter name" />
+        <button class="saveBtn" data-type="topLine">Save</button>
+      </div>
+      <div class="result-item">
+        <label>Middle Line:</label>
+        <input type="text" id="middleLineName" placeholder="Enter name" />
+        <button class="saveBtn" data-type="middleLine">Save</button>
+      </div>
+      <div class="result-item">
+        <label>Bottom Line:</label>
+        <input type="text" id="bottomLineName" placeholder="Enter name" />
+        <button class="saveBtn" data-type="bottomLine">Save</button>
+      </div>
+      <div class="result-item">
+        <label>Jaldi 5:</label>
+        <input type="text" id="jaldiName" placeholder="Enter name" />
+        <button class="saveBtn" data-type="jaldi">Save</button>
+      </div>
+      <div class="result-item">
+        <label>Full House:</label>
+        <input type="text" id="fullHouseName" placeholder="Enter name" />
+        <button class="saveBtn" data-type="fullHouse">Save</button>
+      </div>
+    </div>
+
+    <div class="final-results">
+      <h3>🎉 Game Results 🎉</h3>
+      <ul id="finalResultsList"></ul>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <style src="styles.css"></style>
+  
+</body>
+<script>// === HOUSIE GAME LOGIC ===
+
+// DOM elements
+const numbersTable = document.getElementById("numbersTable");
+const startBtn = document.getElementById("startBtn");
+const nextNumberBtn = document.getElementById("nextNumberBtn");
+const resetBtn = document.getElementById("resetBtn");
+const currentNumber = document.getElementById("currentNumber");
+const finalResultsList = document.getElementById("finalResultsList");
+const saveButtons = document.querySelectorAll(".saveBtn");
+
+// Game data
+let numbers = [];
+let calledNumbers = [];
+let results = {
+  topLine: "",
+  middleLine: "",
+  bottomLine: "",
+  jaldi: "",
+  fullHouse: "",
+};
+
+// === Initialize the number grid ===
+function createNumberTable() {
+  numbersTable.innerHTML = "";
+  let num = 1;
+  for (let i = 0; i < 9; i++) {
+    const row = document.createElement("tr");
+    for (let j = 0; j < 10; j++) {
+      const cell = document.createElement("td");
+      cell.textContent = num;
+      cell.id = `num-${num}`;
+      row.appendChild(cell);
+      num++;
+      if (num > 90) break;
+    }
+    numbersTable.appendChild(row);
+  }
+}
+
+// === Start Game ===
+startBtn.addEventListener("click", () => {
+  numbers = Array.from({ length: 90 }, (_, i) => i + 1);
+  calledNumbers = [];
+  results = {
+    topLine: "",
+    middleLine: "",
+    bottomLine: "",
+    jaldi: "",
+    fullHouse: "",
+  };
+  currentNumber.textContent = "--";
+  finalResultsList.innerHTML = "";
+  document
+    .querySelectorAll("td")
+    .forEach((td) => td.classList.remove("active"));
+
+  nextNumberBtn.disabled = false;
+  resetBtn.disabled = false;
+  startBtn.disabled = true;
+});
+
+// === Pick Next Random Number ===
+nextNumberBtn.addEventListener("click", () => {
+  if (numbers.length === 0) {
+    currentNumber.textContent = "🎉";
+    nextNumberBtn.disabled = true;
+    alert("All numbers have been called!");
+    displayFinalResults();
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * numbers.length);
+  const number = numbers.splice(randomIndex, 1)[0];
+  calledNumbers.push(number);
+
+  currentNumber.textContent = number;
+document.getElementById(`num-${number}`).classList.add("active");
+
+// Speak the called number
+speakNumber(number);
+function speakNumber(number) {
+  if (!("speechSynthesis" in window)) return;
+
+  let messageText = "";
+
+  if (number === 1) messageText = "Top of the house, Number One!";
+  else if (number === 90) messageText = "Last number, Ninety!";
+  else messageText = `Number ${number}`;
+
+  const message = new SpeechSynthesisUtterance(messageText);
+  message.lang = "en-IN";
+  message.rate = 0.95;
+  message.pitch = 1;
+  message.volume = 1;
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(message);
+}
+
+
+  // Optionally: Play sound or show animation
+});
+
+// === Save Winner Info ===
+saveButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const type = btn.dataset.type;
+    const input = document.getElementById(`${type}Name`);
+    const name = input.value.trim();
+
+    if (name === "") {
+      alert("Please enter a name before saving!");
+      return;
+    }
+
+    results[type] = name;
+    btn.disabled = true;
+    input.disabled = true;
+
+    alert(`${type.replace(/([A-Z])/g, " $1")} completed by ${name}!`);
+  });
+});
+
+// === Reset Game ===
+resetBtn.addEventListener("click", () => {
+  if (confirm("Are you sure you want to reset the game?")) {
+    startBtn.disabled = false;
+    nextNumberBtn.disabled = true;
+    resetBtn.disabled = true;
+    createNumberTable();
+    currentNumber.textContent = "--";
+    finalResultsList.innerHTML = "";
+    document
+      .querySelectorAll("input")
+      .forEach((input) => ((input.disabled = false), (input.value = "")));
+    document
+      .querySelectorAll(".saveBtn")
+      .forEach((btn) => (btn.disabled = false));
+  }
+});
+
+// === Display Final Results ===
+function displayFinalResults() {
+  finalResultsList.innerHTML = "";
+  for (let key in results) {
+    if (results[key]) {
+      const li = document.createElement("li");
+      li.textContent = `${key.replace(/([A-Z])/g, " $1")}: ${results[key]}`;
+      finalResultsList.appendChild(li);
+    }
+  }
+}
+
+// === Initialize ===
+createNumberTable();
+</script>
+<style>/* General Page Styling */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #74ABE2, #5563DE);
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+
+.container {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  padding: 20px;
+  border-radius: 15px;
+  max-width: 500px;
+  width: 90%;
+  margin: 20px auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 1.8em;
+}
+
+/* Control Buttons */
+.controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+button {
+  background-color: #ffb400;
+  border: none;
+  color: #000;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background-color: #ffd95a;
+}
+
+button:disabled {
+  background-color: #777;
+  color: #ddd;
+  cursor: not-allowed;
+}
+
+/* Current Number Display */
+.number-display {
+  text-align: center;
+  margin: 15px 0;
+}
+
+#currentNumber {
+  font-size: 3em;
+  background-color: #fff;
+  color: #000;
+  display: inline-block;
+  padding: 10px 25px;
+  border-radius: 10px;
+}
+
+/* Numbers Table */
+.table-container {
+  display: flex;
+  justify-content: center;
+  margin: 15px 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  text-align: center;
+}
+
+td {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+td.active {
+  background-color: #00ff88;
+  color: #000;
+  font-weight: bold;
+}
+
+/* Results Section */
+.results {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.results h3 {
+  text-align: center;
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0;
+}
+
+.result-item input {
+  flex: 1;
+  margin: 0 5px;
+  padding: 5px;
+  border-radius: 6px;
+  border: none;
+}
+
+/* Final Results */
+.final-results {
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 20px;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.final-results h3 {
+  text-align: center;
+}
+
+#finalResultsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#finalResultsList li {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  button {
+    font-size: 0.8em;
+    padding: 8px 10px;
+  }
+
+  #currentNumber {
+    font-size: 2.5em;
+  }
+}
+</style>
+</html>
+
